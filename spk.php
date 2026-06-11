@@ -1,127 +1,123 @@
 <?php
     session_start();
-    // Validasi keamanan sesi login
     if (!isset($_SESSION['stat']) || $_SESSION['stat'] != 'masuk') {
         header("Location: login.php?id=out");
         exit;
     }
-
     include 'onek.php';
     require_once 'nav.php';
 ?>
             
 <div class="container-fluid py-4">
     <div class="row mb-4 align-items-center">
-        <div class="col-lg-6">
-            <h2 class="fw-bold m-0 text-dark">Hasil Keputusan SPK</h2>
-            <p class="text-muted m-0">Rekomendasi penempatan kerja otomatis berdasarkan perhitungan Metode SMART</p>
+        <div class="col-lg-8">
+            <h2 class="fw-bold text-dark m-0">Matriks Keputusan Penempatan & Pembinaan</h2>
+            <p class="text-muted m-0">Siswa yang gagal memenuhi standar (passing grade) masuk Program Pembinaan</p>
         </div>
-        <div class="col-lg-6 text-end">
-            <a href="index.php" class="btn btn-outline-secondary rounded-pill px-4 shadow-sm">
-                <i class="fas fa-arrow-left me-2"></i>Kembali ke Dashboard
-            </a>
+        <div class="col-lg-4 text-end">
+            <a href="nilai.php" class="btn btn-primary rounded-pill px-4 shadow-sm"><i class="fas fa-edit me-2"></i>Update Nilai Pembinaan</a>
         </div>
     </div>
     
-    <div class="row">
-        <div class="col-lg-12">
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-body p-4 text-nowrap table-responsive">
-                    <table class="table table-hover table-borderless align-middle m-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="text-center" width="5%">No</th>
-                                <th width="15%">NISN / ID Pelamar</th>
-                                <th width="25%">Nama Kandidat</th>
-                                <th class="text-center">Nilai Pelajaran (NP)</th>
-                                <th class="text-center">Nilai Kepribadian (NK)</th>
-                                <th class="text-center">Nilai Akademik (NA)</th>
-                                <th class="text-center">Nilai Evaluasi Akhir</th> 
-                                <th class="text-center">Rekomendasi Penempatan</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php
-                            $n = 1;
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4 text-nowrap table-responsive">
+            <table class="table table-hover table-borderless align-middle m-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-center" width="5%">No</th>
+                        <th>Siswa</th>
+                        <th class="text-center">Kelas</th>
+                        <th>Detail Evaluasi Standar Perusahaan</th>
+                        <th class="text-center">Rekomendasi Akhir</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php
+                    $n = 1;
+                    $q_siswa = mysqli_query($dbcon, "SELECT * FROM siswa ORDER BY nama ASC");
 
-                            // 1. Ambil total akumulasi nilai bobot kriteria secara dinamis dari database
-                            $sqljumlah = "SELECT SUM(bobot) AS total_bobot FROM kriteria";
-                            $queryjumlah = mysqli_query($dbcon, $sqljumlah);
-                            $jumlah_data = mysqli_fetch_assoc($queryjumlah);
-                            $jumlah = isset($jumlah_data['total_bobot']) && $jumlah_data['total_bobot'] > 0 ? $jumlah_data['total_bobot'] : 1;
-                            
-                            // 2. Pemetaan bobot aman berdasarkan id_kriteria dari tabel kriteria
-                            $bobot_na = 0;
-                            $bobot_np = 0;
-                            $bobot_nk = 0;
-
-                            $sqlkriteria = "SELECT id_kriteria, bobot FROM kriteria";
-                            $querykriteria = mysqli_query($dbcon, $sqlkriteria);
-                            while ($bariskriteria = mysqli_fetch_array($querykriteria)) {
-                                if ($bariskriteria['id_kriteria'] == 1) {
-                                    $bobot_na = $bariskriteria['bobot'];
-                                } elseif ($bariskriteria['id_kriteria'] == 2) {
-                                    $bobot_np = $bariskriteria['bobot'];
-                                } elseif ($bariskriteria['id_kriteria'] == 3) {
-                                    $bobot_nk = $bariskriteria['bobot'];
+                    while ($s = mysqli_fetch_array($q_siswa)) {  
+                        $nisn = $s['nisn'];
+                        $kelas = $s['kelas'];
+                        
+                        $skor_tertinggi = -1;
+                        $rekomendasi_pt = "Belum Dinilai";
+                        $badge_color = "bg-secondary";
+                        $ada_penilaian = false;
+                ?>
+                        <tr>
+                            <td class="text-center text-muted fw-bold"><?=$n++?></td>
+                            <td>
+                                <span class="fw-semibold text-dark"><?= htmlspecialchars($s['nama']) ?></span><br>
+                                <span class="text-muted small"><?= htmlspecialchars($nisn) ?></span>
+                            </td>
+                            <td class="text-center"><span class="badge bg-light text-dark border"><?= htmlspecialchars($kelas) ?></span></td>
+                            <td>
+                                <div class="d-flex flex-column gap-1">
+                                <?php 
+                                $q_pt = mysqli_query($dbcon, "SELECT * FROM perusahaan ORDER BY passing_grade DESC");
+                                while($pt = mysqli_fetch_array($q_pt)) {
+                                    $id_pt = $pt['id_perusahaan'];
+                                    
+                                    $q_sum = mysqli_query($dbcon, "SELECT SUM(bobot) as total_b FROM kriteria WHERE id_perusahaan=$id_pt");
+                                    $sum_d = mysqli_fetch_assoc($q_sum);
+                                    $total_bobot_pt = isset($sum_d['total_b']) && $sum_d['total_b'] > 0 ? $sum_d['total_b'] : 1;
+                                    
+                                    $nilai_akhir_smart = 0;
+                                    $punya_nilai_pt_ini = false;
+                                    
+                                    $q_kr = mysqli_query($dbcon, "SELECT * FROM kriteria WHERE id_perusahaan=$id_pt");
+                                    while($kr = mysqli_fetch_array($q_kr)) {
+                                        $id_kr = $kr['id_kriteria'];
+                                        $bobot_kr = $kr['bobot'];
+                                        
+                                        $q_v = mysqli_query($dbcon, "SELECT nilai FROM penilaian WHERE nisn='$nisn' AND id_kriteria=$id_kr");
+                                        if(mysqli_num_rows($q_v) > 0) {
+                                            $v_data = mysqli_fetch_assoc($q_v);
+                                            $nilai_akhir_smart += $v_data['nilai'] * ($bobot_kr / $total_bobot_pt);
+                                            $punya_nilai_pt_ini = true;
+                                            $ada_penilaian = true;
+                                        }
+                                    }
+                                    
+                                    if($punya_nilai_pt_ini) {
+                                        $lolos = ($nilai_akhir_smart >= $pt['passing_grade']);
+                                        $txt_color = $lolos ? "text-success" : "text-danger";
+                                        $status_txt = $lolos ? "Lolos" : "Gagal";
+                                        
+                                        echo "<span class='small fw-medium'>• ".htmlspecialchars($pt['nama_perusahaan'])." (Min: ".$pt['passing_grade'].") = <b class='".$txt_color."'>".round($nilai_akhir_smart, 2)."</b> (".$status_txt.")</span>";
+                                        
+                                        // Cari nilai lolos tertinggi
+                                        if($lolos && $nilai_akhir_smart > $skor_tertinggi) {
+                                            $skor_tertinggi = $nilai_akhir_smart;
+                                            $rekomendasi_pt = $pt['nama_perusahaan'];
+                                            $badge_color = "bg-success";
+                                        }
+                                    } else {
+                                        echo "<span class='small text-muted'>• ".htmlspecialchars($pt['nama_perusahaan'])." = <i class='small'>Skor kriteria kosong</i></span>";
+                                    }
                                 }
-                            }
-
-                            // 3. Ambil aturan kelulusan perusahaan dari database (diurutkan dari passing grade tertinggi)
-                            $perusahaan_query = mysqli_query($dbcon, "SELECT * FROM perusahaan ORDER BY passing_grade DESC");
-                            $pt_utama = mysqli_fetch_assoc($perusahaan_query);    // Baris 1: PT Utama (Passing Grade Tinggi)
-                            $pt_sekunder = mysqli_fetch_assoc($perusahaan_query); // Baris 2: PT Kedua (Catch-all / Sisa)
-                            
-                            // 4. Menggabungkan data nilai dengan nama kandidat menggunakan JOIN
-                            $sqlnilai = "SELECT p.*, s.nama FROM penilaian p JOIN siswa s ON p.nisn = s.nisn";
-                            $querynilai = mysqli_query($dbcon, $sqlnilai);
-
-                            while ($barisnilai = mysqli_fetch_array($querynilai)) {  
                                 
-                                // Penghitungan bobot evaluasi SMART yang disinkronkan dengan kriteria database
-                                $nilaiA = $barisnilai['na'] * ($bobot_na / $jumlah);
-                                $nilaiP = $barisnilai['np'] * ($bobot_np / $jumlah);
-                                $nilaiK = $barisnilai['nk'] * ($bobot_nk / $jumlah);
-                                $nilaievaluasi = $nilaiP + $nilaiK + $nilaiA;
-                                
-                                // Logika penentuan rekomendasi perusahaan berdasarkan passing grade di database
-                                if ($pt_utama && $nilaievaluasi >= $pt_utama['passing_grade']) {
-                                    $keputusan = $pt_utama['nama_perusahaan'];
-                                    $badge = "bg-success"; // Warna hijau untuk yang lolos PT Utama
-                                } else if ($pt_sekunder) {
-                                    $keputusan = $pt_sekunder['nama_perusahaan'];
-                                    $badge = "bg-primary"; // Warna biru untuk alternatif penempatan sisa
-                                } else {
-                                    $keputusan = "Belum Terklasifikasi";
-                                    $badge = "bg-secondary";
+                                // LOGIKA PROGRAM PEMBINAAN: 
+                                // Jika siswa sudah dinilai, TAPI skor tertingginya masih -1 (artinya gagal di semua perusahaan)
+                                if($ada_penilaian && $skor_tertinggi == -1) {
+                                    $rekomendasi_pt = "Program Pembinaan";
+                                    $badge_color = "bg-danger"; // Warna merah menandakan butuh pembinaan/perbaikan nilai
                                 }
                                 ?>
-                                <tr>
-                                    <td class="text-center text-muted fw-bold"><?=$n?></td>
-                                    <td class="text-secondary"><?=$barisnilai['nisn']?></td>
-                                    <td class="fw-semibold text-dark"><?=$barisnilai['nama'] ?></td>
-                                    <td class="text-center"><?=$barisnilai['np']?></td>
-                                    <td class="text-center"><?=$barisnilai['nk']?></td>
-                                    <td class="text-center"><?=$barisnilai['na']?></td>
-                                    <td class="text-center fw-bold text-success"><?= round($nilaievaluasi, 3)?></td>
-                                    <td class="text-center">
-                                        <span class="badge rounded-pill <?=$badge?> px-3 py-2 shadow-sm" style="font-size: 0.85rem;">
-                                            <i class="fas fa-building me-1"></i> <?= htmlspecialchars($keputusan) ?>
-                                        </span>
-                                    </td>
-                                </tr>
-                            <?php    
-                            $n++;
-                            }
-                            ?>
-                        </tbody>
-                    </table>  
-                </div>
-            </div>  
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge rounded-pill <?=$badge_color?> px-3 py-2 shadow-sm" style="font-size: 0.85rem;">
+                                    <?= htmlspecialchars($rekomendasi_pt) ?>
+                                </span>
+                            </td>
+                        </tr>
+                <?php } ?>
+                </tbody>
+            </table>  
         </div>
     </div>
 </div>
 
-<?php 
-    require_once 'foot.php';
-?>
+<?php require_once 'foot.php'; ?>

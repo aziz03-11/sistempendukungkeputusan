@@ -1,9 +1,9 @@
 <?php
-// Pastikan session dimulai untuk keamanan
+// Pastikan session dimulai untuk keamanan semua halaman
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-// Validasi login
+// Validasi sesi login admin
 if (!isset($_SESSION['stat']) || $_SESSION['stat'] != 'masuk') {
     header("Location: login.php?id=out");
     exit;
@@ -39,10 +39,10 @@ if (!isset($_SESSION['stat']) || $_SESSION['stat'] != 'masuk') {
             z-index: 1030;
         }
 
-        /* Sidebar */
+        /* Sidebar Menu Kiri */
         .sidebar {
             position: fixed;
-            top: 70px; /* Mulai tepat di bawah navbar */
+            top: 70px; /* Mulai tepat di bawah tinggi navbar */
             bottom: 0;
             left: 0;
             width: 250px;
@@ -75,25 +75,25 @@ if (!isset($_SESSION['stat']) || $_SESSION['stat'] != 'masuk') {
             background-color: #0d6efd;
         }
 
-        /* Konten Utama */
+        /* Area Konten Utama */
         .main-content {
-            margin-top: 70px; /* Jarak sebesar tinggi navbar atas */
-            margin-left: 250px; /* Jarak sebesar lebar sidebar */
+            margin-top: 70px;
+            margin-left: 250px; /* Jarak batas kiri sebesar lebar sidebar */
             padding: 2rem;
             min-height: calc(100vh - 70px);
             transition: all 0.3s ease;
         }
 
-        /* Tampilan Mobile & Layar Kecil */
+        /* Responsivitas untuk Layar Mobile/Tablet */
         @media (max-width: 768px) {
             .sidebar {
-                left: -250px; /* Sembunyikan sidebar ke luar layar */
+                left: -250px; /* Menyembunyikan menu ke luar batas layar */
             }
             .sidebar.show {
-                left: 0;
+                left: 0; /* Menampilkan menu kembali */
             }
             .main-content {
-                margin-left: 0; /* Konten memenuhi layar */
+                margin-left: 0;
                 padding: 1.5rem;
             }
         }
@@ -129,12 +129,13 @@ if (!isset($_SESSION['stat']) || $_SESSION['stat'] != 'masuk') {
                 <i class="fas fa-home"></i> Beranda
             </a>
         </li>
+        
         <li class="nav-item mt-3">
             <span class="text-muted ms-4 fw-bold" style="font-size: 0.75rem; letter-spacing: 1px;">DATA MASTER</span>
         </li>
         <li class="nav-item">
             <a class="nav-link" href="alternatif.php">
-                <i class="fas fa-user-graduate"></i> Data Siswa
+                <i class="fas fa-user-graduate"></i> Data Kandidat
             </a>
         </li>
         <li class="nav-item">
@@ -142,6 +143,12 @@ if (!isset($_SESSION['stat']) || $_SESSION['stat'] != 'masuk') {
                 <i class="fas fa-list-check"></i> Data Kriteria
             </a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" href="perusahaan.php">
+                <i class="fas fa-building"></i> Data Perusahaan
+            </a>
+        </li>
+        
         <li class="nav-item mt-3">
             <span class="text-muted ms-4 fw-bold" style="font-size: 0.75rem; letter-spacing: 1px;">PROSES SPK</span>
         </li>
