@@ -1,109 +1,161 @@
 <?php
-   include 'cek.php';
+// Pastikan session dimulai untuk keamanan
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+// Validasi login
+if (!isset($_SESSION['stat']) || $_SESSION['stat'] != 'masuk') {
+    header("Location: login.php?id=out");
+    exit;
+}
 ?>
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="description" content="">
-        <meta name="author" content="">
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sistem Pengambilan Keputusan SMART</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f7f6;
+            overflow-x: hidden; /* Mencegah layar terpotong / scroll ke samping */
+        }
+        
+        /* Navbar Atas */
+        .navbar-top {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 0;
+            height: 70px;
+            background-color: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            z-index: 1030;
+        }
 
-        <title>Sistem Pengambilan Keputusan SMART</title>
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 70px; /* Mulai tepat di bawah navbar */
+            bottom: 0;
+            left: 0;
+            width: 250px;
+            background-color: #212529;
+            color: #fff;
+            z-index: 1020;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+            padding-top: 1rem;
+        }
+        .sidebar .nav-link {
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.75);
+            padding: 0.8rem 1.5rem;
+            display: flex;
+            align-items: center;
+            border-radius: 0 50px 50px 0;
+            margin-right: 15px;
+            margin-bottom: 5px;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link i {
+            margin-right: 15px;
+            width: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: #fff;
+            background-color: #0d6efd;
+        }
 
-        <!-- Bootstrap Core CSS -->
-        <link href="css/bootstrap.min.css" rel="stylesheet">
+        /* Konten Utama */
+        .main-content {
+            margin-top: 70px; /* Jarak sebesar tinggi navbar atas */
+            margin-left: 250px; /* Jarak sebesar lebar sidebar */
+            padding: 2rem;
+            min-height: calc(100vh - 70px);
+            transition: all 0.3s ease;
+        }
 
-        <!-- MetisMenu CSS -->
-        <link href="css/metisMenu.min.css" rel="stylesheet">
+        /* Tampilan Mobile & Layar Kecil */
+        @media (max-width: 768px) {
+            .sidebar {
+                left: -250px; /* Sembunyikan sidebar ke luar layar */
+            }
+            .sidebar.show {
+                left: 0;
+            }
+            .main-content {
+                margin-left: 0; /* Konten memenuhi layar */
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
 
-        <!-- Timeline CSS -->
-        <link href="css/timeline.css" rel="stylesheet">
+<nav class="navbar navbar-top px-4 d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center">
+        <button class="btn btn-outline-primary border-0 d-md-none me-3" type="button" id="sidebarToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+        <a class="navbar-brand text-primary fw-bold m-0" href="index.php">
+            <i class="fas fa-chart-line me-2"></i>SPK SMART
+        </a>
+    </div>
+    
+    <div class="dropdown">
+        <a class="nav-link dropdown-toggle text-dark fw-medium" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+            <img src="https://ui-avatars.com/api/?name=Admin&background=0d6efd&color=fff" class="rounded-circle me-2" width="32" height="32" alt="User">
+            <?= isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : 'Admin' ?>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+            <li><a class="dropdown-item text-danger fw-semibold" href="login.php?id=logout"><i class="fas fa-sign-out-alt me-2"></i>Keluar</a></li>
+        </ul>
+    </div>
+</nav>
 
-        <!-- Custom CSS -->
-        <link href="css/startmin.css" rel="stylesheet">
+<nav id="sidebarMenu" class="sidebar shadow">
+    <ul class="nav flex-column mb-auto">
+        <li class="nav-item">
+            <a class="nav-link" href="index.php">
+                <i class="fas fa-home"></i> Beranda
+            </a>
+        </li>
+        <li class="nav-item mt-3">
+            <span class="text-muted ms-4 fw-bold" style="font-size: 0.75rem; letter-spacing: 1px;">DATA MASTER</span>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="alternatif.php">
+                <i class="fas fa-user-graduate"></i> Data Siswa
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="kriteria.php">
+                <i class="fas fa-list-check"></i> Data Kriteria
+            </a>
+        </li>
+        <li class="nav-item mt-3">
+            <span class="text-muted ms-4 fw-bold" style="font-size: 0.75rem; letter-spacing: 1px;">PROSES SPK</span>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="nilai.php">
+                <i class="fas fa-pen-to-square"></i> Input Penilaian
+            </a>
+        </li>
+        <li class="nav-item mt-3 pt-3 border-top border-secondary">
+            <a class="nav-link text-warning fw-bold" href="spk.php">
+                <i class="fas fa-crown"></i> Hasil Keputusan
+            </a>
+        </li>
+    </ul>
+</nav>
 
-        <!-- Morris Charts CSS -->
-        <link href="css/morris.css" rel="stylesheet">
-
-        <!-- Custom Fonts -->
-        <link href="css/font-awesome.min.css" rel="stylesheet" type="text/css">
-
-        <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-        <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-        <!--[if lt IE 9]>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/respond.js/1.4.2/respond.min.js"></script>
-        <![endif]-->
-    </head>
-    <body>
-
-        <div id="wrapper">
-
-            <!-- Navigation -->
-            <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
-                <div class="navbar-header">
-                    <a class="navbar-brand" href="">SMAN 1 PANYABUNGAN</a>
-                </div>
-
-                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-                    <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-
-                <!--<ul class="nav navbar-nav navbar-left navbar-top-links">
-                    <li><a href="#"><i class="fa fa-home fa-fw"></i> Website</a></li>
-                </ul>-->
-
-                <ul class="nav navbar-right navbar-top-links">
-
-                    <li class="dropdown">
-                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                            <i class="fa fa-user fa-fw"></i> Ahmad Raja <b class="caret"></b>
-                        </a>
-                        <ul class="dropdown-menu dropdown-user">
-                            <li><a href="#"><i class="fa fa-user fa-fw"></i> User Profile</a>
-                            </li>
-                            <li><a href="#"><i class="fa fa-gear fa-fw"></i> Settings</a>
-                            </li>
-                            <li class="divider"></li>
-                            <li><a href="logout.php"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
-                            </li>
-                        </ul>
-                    </li>
-                </ul>
-                <!-- /.navbar-top-links -->
-
-                <div class="navbar-default sidebar" role="navigation">
-                    <div class="sidebar-nav navbar-collapse">
-                        <ul class="nav" id="side-menu">
-                            <li>
-                                <a href="index.php" class=""><i class="fa fa-dashboard fa-fw"></i> Dashboard</a>
-                            </li>
-                            <li>
-                                <a href="alternatif.php" class="active"><i class="fa fa-file-o fa-fw"></i> Data Alternatif</a>
-                            </li>
-                            <li>
-                                <a href="kriteria.php" class=""><i class="fa fa-file-o fa-fw"></i> Data Kriteria</a>
-                            </li>
-                            <li>
-                                <a href="nilai.php" class=""><i class="fa fa-edit fa-fw"></i> Isi Nilai Alternatif</a>
-                            </li>
-                            <li>
-                                <a href="spk.php" class=""><i class="fa fa-cogs fa-fw"></i> Proses SPK</a>
-                            </li>
-                            
-                            <!-- <li>
-                                <a href="pages/tables.html"><i class="fa fa-table fa-fw"></i> Tables</a>
-                            </li>   -->                                                     
-                        </ul>
-                                <!-- /.nav-second-level -->
-                            </li>
-                            
-                        </ul>
-                    </div>
-                </div>
-            </nav>
+<main class="main-content">
